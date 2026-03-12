@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>선배님 안볼때 소금넣기</title>
+
+<style>
+
+body{
+margin:0;
+font-family:sans-serif;
+background:black;
+color:white;
+text-align:center;
+overflow:hidden;
+}
+
+/* 화면 */
+
+.screen{
+display:none;
+position:absolute;
+
+top:0;
+left:0;
+
+width:100vw;
+height:100vh;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+}
+
+.active{
+display:flex;
+}
+
+/* 스크린 */
+
+#gameScreen{
+position:absolute;
+
+top:0;
+left:0;
+
+width:100vw;
+height:100vh;
+
+justify-content:center;
+align-items:center;
+
+background:black;
+}
+
+/* 게임 영역 */
+
+#gameWorld{
+
+position:relative;
+
+width:100%;
+height:100%;
+
+background-image:url("images/kitchen.png");
+background-size:contain;
+background-position:center;
+background-repeat:no-repeat;
+
+}
+
+/* 선생님 */
+
+#teacher{
+position:absolute;
+
+width:100%;
+height:100%;
+
+background-image:url("images/teacher_back.png");
+background-size:contain;
+background-position:center;
+background-repeat:no-repeat;
+}
+
+/* 플레이어 */
+
+#player{
+position:absolute;
+
+right:0%;
+bottom:0%;
+
+width:100%;
+height:100%;
+
+background-image:url("images/player_default.png");
+background-size:contain;
+background-position:center;
+background-repeat:no-repeat;
+}
+
+/* 유혹 효과 */
+
+#charm{
+position:absolute;
+
+top:0%;
+right:0%;
+
+width:100%;
+height:100%;
+
+background-image:url("images/charm.png");
+background-size:contain;
+background-position:center;
+background-repeat:no-repeat;
+
+display:none;
+}
+
+/* 게이지 */
+
+#gaugeBox{
+position:absolute;
+top:10%;
+left:30%;
+transform:translateX(-50%);
+
+width:50%;
+height:5%;
+
+border:4px solid black;
+background:#333;
+}
+
+#gauge{
+height:100%;
+width:100%;
+background:orange;
+}
+
+/* 점수 */
+
+#scoreArea{
+position:absolute;
+top:20%;
+left:30%;
+transform:translateX(-50%);
+font-size:20px;
+font-color:black;
+}
+
+/* 버튼 */
+
+#controls{
+position:fixed;
+bottom:0;
+left:0;
+
+width:100%;
+height:20vh;
+
+background:#111;
+
+justify-content:space-evenly;
+align-items;center;
+
+display:none; 
+}
+
+.controlBtn{
+font-size:5vw;
+padding:25px 0;
+width:40%;
+border:none;
+border-radius:15px;
+}
+
+/* 시작 화면 */
+
+#titleContainer{
+position:relative;
+width:100vw;
+}
+
+#title{
+width:100%;
+display:block;
+}
+
+/* 시작 버튼을 타이틀 위에 겹치기 */
+
+#startBtn{
+position:absolute;
+
+left:70%;
+bottom:10%;
+
+transform:translateX(-50%);
+
+width:35%;
+
+cursor:pointer;
+}
+
+/* 엔딩 */
+
+#finalScore{
+font-size:40px;
+margin:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- 시작 화면 -->
+
+<div id="startScreen" class="screen active">
+
+<div id="titleContainer">
+
+<img src="images/title.png" id="title">
+
+<img src="images/start_button.png" id="startBtn">
+
+</div>
+
+</div>
+
+<!-- 게임 화면 -->
+
+<div id="gameScreen" class="screen">
+
+<div id="gameWorld">
+
+<div id="teacher"></div>
+<div id="player"></div>
+<div id="charm"></div>
+
+<div id="gaugeBox">
+<div id="gauge"></div>
+</div>
+
+<div id="scoreArea">
+점수 : <span id="score">0</span>점
+</div>
+
+</div>
+</div>
+
+<!-- 버튼 -->
+
+<div id="controls">
+
+<button class="controlBtn" id="saltBtn">소금</button>
+
+<button class="controlBtn" id="temptBtn">유혹 (4)</button>
+
+</div>
+
+<!-- 엔딩 화면 -->
+
+<div id="endScreen" class="screen">
+
+<div style="font-size:50px">들켰다!</div>
+
+<div id="finalScore"></div>
+
+<img src="images/restart_button.png" id="restartBtn">
+
+</div>
+
+<script>
+
+/* 요소 */
+
+const teacher=document.getElementById("teacher")
+const player=document.getElementById("player")
+const charm=document.getElementById("charm")
+const gaugeBar=document.getElementById("gauge")
+
+const startBtn = document.getElementById("startBtn")
+const restartBtn = document.getElementById("restartBtn")
+const startScreen = document.getElementById("startScreen")
+const gameScreen = document.getElementById("gameScreen")
+const endScreen = document.getElementById("endScreen")
+
+const controls = document.getElementById("controls")
+const saltBtn = document.getElementById("saltBtn")
+const temptBtn = document.getElementById("temptBtn")
+const score = document.getElementById("score")
+const finalScore = document.getElementById("finalScore")
+
+/* 변수 */
+
+let teacherFront=false
+let gauge=60
+let saltPressed=false
+let gameRunning=false
+let temptLeft=4
+let timeScore=0
+
+/* 순서 시스템 */
+
+let charmIndex=0
+
+const charmImages=[
+"images/charm1.png",
+"images/charm2.png",
+"images/charm3.png",
+"images/charm4.png"
+]
+
+/* 시작 */
+
+startBtn.onclick=()=>{
+
+startScreen.classList.remove("active")
+gameScreen.classList.add("active")
+
+controls.style.display = "flex"
+
+startGame()
+
+}
+
+restartBtn.onclick=()=>{
+
+endScreen.classList.remove("active")
+startScreen.classList.add("active")
+
+}
+
+/* 게임 시작 */
+
+function startGame(){
+
+gauge=60
+timeScore=0
+temptLeft=4
+charmIndex=0
+
+temptBtn.innerText="유혹 ("+temptLeft+")"
+
+gameRunning=true
+
+updateGauge()
+
+changeTeacher()
+
+}
+
+/* 소금 버튼 */
+
+function pressSalt(){
+
+if(!gameRunning)return
+
+saltPressed=true
+
+player.style.backgroundImage="url('images/player_cook.png')"
+
+}
+
+function releaseSalt(){
+
+saltPressed=false
+
+player.style.backgroundImage="url('images/player_default.png')"
+
+}
+
+saltBtn.onmousedown=pressSalt
+saltBtn.onmouseup=releaseSalt
+saltBtn.ontouchstart=pressSalt
+saltBtn.ontouchend=releaseSalt
+
+/* 유혹 스킬 */
+
+temptBtn.onclick=()=>{
+
+if(!teacherFront)return
+if(temptLeft<=0)return
+if(!gameRunning)return
+
+temptLeft--
+
+temptBtn.innerText="유혹 ("+temptLeft+")"
+
+charm.style.backgroundImage = "url('images/charm.png')"
+charm.style.display = "block"
+
+let delay=Math.random()*2000+1000
+
+setTimeout(()=>{
+
+teacherFront=false
+teacher.style.backgroundImage="url('images/teacher_back.png')"
+charm.style.display="none"
+
+},delay)
+
+}
+
+/* 게임 루프 */
+
+setInterval(()=>{
+
+if(!gameRunning)return
+
+timeScore++
+score.innerText=timeScore
+
+if(saltPressed){
+
+if(teacherFront){
+
+gameOver()
+controls.style.display = "none"
+
+return
+
+}
+
+gauge++
+
+}else{
+
+gauge-=1.0
+
+}
+
+if(gauge<0)gauge=0
+if(gauge>60)gauge=60
+
+updateGauge()
+
+if(gauge<=0){
+
+gameOver()
+
+}
+
+},1000)
+
+/* 게이지 */
+
+function updateGauge(){
+
+gaugeBar.style.width=(gauge/60*100)+"%"
+
+}
+
+/* 선생님 방향 */
+
+function changeTeacher(){
+
+if(!gameRunning)return
+
+teacherFront=!teacherFront
+
+if(teacherFront){
+teacher.style.backgroundImage="url('images/teacher_front.png')"
+}else{
+teacher.style.backgroundImage="url('images/teacher_back.png')"
+}
+
+/* 난이도 계산 */
+
+let maxTime=10000
+
+if(timeScore>60){
+maxTime=4000
+}
+else if(timeScore>40){
+maxTime=6000
+}
+else if(timeScore>20){
+maxTime=8000
+}
+
+/* 다음 전환 */
+
+let next=Math.random()*(maxTime-1000)+1000
+
+setTimeout(changeTeacher,next)
+
+}
+
+
+/* 게임오버 */
+
+function gameOver(){
+
+gameRunning=false
+
+/* 진동 */
+
+if(navigator.vibrate){
+navigator.vibrate([200,100,200])
+}
+
+gameScreen.classList.remove("active")
+endScreen.classList.add("active")
+
+finalScore.innerText="점수 : "+timeScore+"점"
+
+}
+
+/* PC 키보드 지원 */
+
+document.addEventListener("keydown",function(e){
+
+if(e.code==="Space"){
+
+e.preventDefault()
+
+if(!saltPressed){      // 중복 방지
+pressSalt()
+}
+
+}
+
+})
+
+document.addEventListener("keyup",function(e){
+
+if(e.code==="Space"){
+
+e.preventDefault()
+
+releaseSalt()
+
+}
+
+})
+
+</script>
+
+</body>
+</html>
